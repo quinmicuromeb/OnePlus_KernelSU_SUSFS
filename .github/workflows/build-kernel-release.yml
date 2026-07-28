@@ -30,10 +30,10 @@ on:
           - android12-5.10
         default: A14+15+16
       ksu_options:
-        description: 'Enter KernelSU build json (e.g. [{"type":"RESUKISU","hash":"main"}])'
+        description: 'Enter KernelSU build json (e.g. [{"type":"KSUN","hash":"main"}])'
         required: true
         type: string
-        default: '[{"type":"RESUKISU","hash":"main"}]'
+        default: '[{"type":"KSUN","hash":"main"}]'
       optimize_level:
         description: "Compiler optimization level"
         required: true
