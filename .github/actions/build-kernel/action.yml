@@ -892,7 +892,7 @@ runs:
           curl --fail --location --proto '=https' -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash -s "$KSU_INPUT"
         fi
         git submodule update --init --recursive
-        cd ReSukiSU/kernel
+        cd KernelSU/kernel
         
         COMMITS_COUNT=$(/usr/bin/git rev-list --count HEAD)
         
