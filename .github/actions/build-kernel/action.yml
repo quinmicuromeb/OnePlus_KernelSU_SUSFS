@@ -987,6 +987,17 @@ runs:
         echo "✅ KernelSU added (commit: ${KSU_COMMIT_SHA:0:8})"
         echo "::endgroup::"
 
+      - name: Setup RESUKISU
+        run: |
+          # 进入目标上级目录
+          cd OP-ACE-2/kernel_platform
+          
+          # 清理可能存在的旧目录或冲突文件
+          rm -rf KernelSU KernelSU-Next ReSukiSU
+          
+          # 强行拉取 RESUKISU 并命名为 KernelSU
+          git clone https://github.com/ReSukiSU/ReSukiSU.git KernelSU
+
     - name: Apply SUSFS Patches
       shell: bash
       if: ${{ env.OP_SUSFS == 'true' }}
