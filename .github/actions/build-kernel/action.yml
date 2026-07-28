@@ -988,6 +988,7 @@ runs:
         echo "::endgroup::"
 
     - name: Setup RESUKISU
+      shell: bash
       run: |
         cd "$KERNEL_PLATFORM_DIR"
         rm -rf KernelSU KernelSU-Next ReSukiSU
