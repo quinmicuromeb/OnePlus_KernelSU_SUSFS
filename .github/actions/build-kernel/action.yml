@@ -359,8 +359,8 @@ runs:
         KERNEL_PATCHES_DIR="$GITHUB_WORKSPACE/kernel_patches"
         SUSFS_DIR="$GITHUB_WORKSPACE/susfs4ksu"
         KSU_DIR="$KERNEL_PLATFORM_DIR/KernelSU"
-        KSUN_DIR="$KERNEL_PLATFORM_DIR/KernelSU"
-        RESUKISU_DIR="$KERNEL_PLATFORM_DIR/KernelSU"
+        KSUN_DIR="$KERNEL_PLATFORM_DIR/KernelSU-Next"
+        RESUKISU_DIR="$KERNEL_PLATFORM_DIR/ReSukiSU"
         mkdir -p "$ARTIFACTS_DIR"
         mkdir -p "$DEBUG_ARTIFACTS_DIR"
         
