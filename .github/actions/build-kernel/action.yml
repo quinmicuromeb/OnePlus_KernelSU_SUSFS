@@ -993,6 +993,7 @@ runs:
         cd "$KERNEL_PLATFORM_DIR"
         rm -rf KernelSU KernelSU-Next ReSukiSU
         git clone https://github.com/ReSukiSU/ReSukiSU.git KernelSU
+        ln -sf KernelSU ReSukiSU
 
 
     - name: Apply SUSFS Patches
