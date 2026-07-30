@@ -40,6 +40,11 @@ on:
         type: choice
         options: [O2, O3]
         default: O2
+      lz4_update:
+        description: '🔃 Force-enable LZ4 update for this run (overrides every selected model, replaces in-kernel LZ4 with the latest upstream version). Leave unchecked to use each model config default.'
+        required: false
+        type: boolean
+        default: false
       clean_build:
         description: 'Clean build (no ccache)'
         type: boolean
@@ -198,6 +203,12 @@ jobs:
             '[ $devices[0][] as $dev | $ksu_list[0][] as $ksu | ($dev + {ksu_type: $ksu.type, ksu_hash: $ksu.hash}) ]')
           
           rm ksu_temp.json
+          
+          if [ "${{ github.event.inputs.lz4_update }}" = "true" ]; then
+            echo "🔃 LZ4 update forced ON for this run (overriding per-model config)"
+            merged_matrix=$(echo "$merged_matrix" | jq 'map(.lz4_update = true)')
+          fi
+          
           final_count=$(echo "$merged_matrix" | jq 'length')
           
           echo "✅ Found $final_count device(s) to build"
