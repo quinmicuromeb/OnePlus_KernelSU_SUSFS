@@ -429,6 +429,8 @@ runs:
           echo "KERNEL_VER=$VERSION.$PATCHLEVEL"
           echo "TKERNEL_VER=$FULL_VERSION"
           echo "KERNEL_FULL_VER=$ANDROID_VERSION-$FULL_VERSION"
+          echo "KMI=$ANDROID_VERSION-$VERSION.$PATCHLEVEL"
+          echo "SUBLEVEL=$SUBLEVEL"
           if [ "${{ env.OP_SUSFS }}" = true ]; then
             echo "SUSFS_KERNEL_BRANCH=gki-$ANDROID_VERSION-$VERSION.$PATCHLEVEL"
           fi
@@ -1019,6 +1021,10 @@ runs:
         esac
         
         cd "$COMMON_KERNEL_FOLDER"
+        
+        echo "Applying SUBLEVEL-aware fake patch shims (PatchFakePatches.kts)"
+        kotlinc -script "${{ github.action_path }}/scripts/PatchFakePatches.kts" apply "$COMMON_KERNEL_FOLDER"
+        
         if [ "${{ env.ANDROID_VER }}" = "android15" ] && [ "${{ env.KERNEL_VER }}" = "6.6" ]; then
           if ! grep -qxF '#include <trace/hooks/fs.h>' ./fs/namespace.c; then
             sed -i '/#include <trace\/hooks\/blk.h>/a #include <trace\/hooks\/fs.h>' ./fs/namespace.c
@@ -1083,6 +1089,11 @@ runs:
         fi
         
         patch -p1 --forward < "$SUSFS_FOLDER/kernel_patches/50_add_susfs_in_${{ env.SUSFS_KERNEL_BRANCH }}.patch"
+        
+        echo "Running post-patch fixups (PatchFakePatches.kts postfix)"
+        kotlinc -script "${{ github.action_path }}/scripts/PatchFakePatches.kts" postfix "$COMMON_KERNEL_FOLDER"
+        echo "Reverting fake patch shims (PatchFakePatches.kts revert)"
+        kotlinc -script "${{ github.action_path }}/scripts/PatchFakePatches.kts" revert "$COMMON_KERNEL_FOLDER"
         
         # Revert Fake kernel patch
         if [ "$fake_patched_expand" = 1 ]; then
