@@ -97,12 +97,24 @@ runs:
             else
               tar --posix -h -I "zstd -T0 -${{ inputs.compression_level }}" -cvf "$FILENAME" -C "$DIR_NAME" "$BASE_NAME"
             fi
+            TAR_EXIT=$?
           else
             if [ "${{ inputs.compression_level }}" -eq 0 ]; then
-              tar --posix -h -cvf "$FILENAME" -C "$DIR_NAME" "$BASE_NAME" > /dev/null 2>&1
+              TAR_LOG=$(tar --posix -h -cvf "$FILENAME" -C "$DIR_NAME" "$BASE_NAME" 2>&1)
+              TAR_EXIT=$?
             else
-              tar --posix -h -I "zstd -T0 -${{ inputs.compression_level }}" -cvf "$FILENAME" -C "$DIR_NAME" "$BASE_NAME" > /dev/null 2>&1
+              TAR_LOG=$(tar --posix -h -I "zstd -T0 -${{ inputs.compression_level }}" -cvf "$FILENAME" -C "$DIR_NAME" "$BASE_NAME" 2>&1)
+              TAR_EXIT=$?
             fi
+            if [ "$TAR_EXIT" -ne 0 ]; then
+              echo "$TAR_LOG"
+            fi
+          fi
+          
+          if [ "$TAR_EXIT" -ne 0 ] || [ ! -s "$FILENAME" ]; then
+            echo "::error::Archiving failed (tar exit code: $TAR_EXIT) or produced an empty/missing file: $FILENAME. Aborting cache save — see log above for the real tar/zstd error."
+            echo "::endgroup::"
+            exit 1
           fi
           
           FILE_SIZE=$(stat -c%s "$FILENAME")
