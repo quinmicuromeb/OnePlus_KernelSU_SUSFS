@@ -1,14 +1,14 @@
 <div align="center">
 
-# 🔥 Wild Kernels for OnePlus (Oppo/Realme)
+# 🔥 OnePlus Kernels (KernelSU / ReSukiSU + SUSFS)
 
-[![KernelSU-Next](https://img.shields.io/badge/KernelSU_Next-Supported-green)](https://kernelsu-next.github.io/webpage/)
+[![ReSukiSU](https://img.shields.io/badge/ReSukiSU-Supported-green)](https://github.com/ReSukiSU/ReSukiSU)
 [![KernelSU](https://img.shields.io/badge/KernelSU-Supported-green)](https://kernelsu.org/)
-[![Wild KSU](https://img.shields.io/badge/Wild_KSU-Not%20Supported-cb2431)](https://github.com/WildKernels/Wild_KSU/)
 [![SUSFS](https://img.shields.io/badge/SUSFS-Integrated-orange?logo=gitlab)](https://gitlab.com/simonpunk/susfs4ksu)
-[![OnePlusOSS Tracking Status](https://img.shields.io/badge/OnePlusOSS--Tracker-active-green)](https://github.com/WildKernels/OnePlus_KernelSU_SUSFS/blob/status-page/README.md)
 
 </div>
+
+This is a personal fork of [WildKernels/OnePlus_KernelSU_SUSFS](https://github.com/WildKernels/OnePlus_KernelSU_SUSFS), with the root manager switched from KernelSU-Next to **ReSukiSU**, plus a handful of additional features ported over from other community projects (see [Credits & Upstream Projects](#-credits--upstream-projects) below).
 
 ---
 
@@ -32,20 +32,6 @@ Flashing this kernel will not void your warranty, but there is always a risk of 
 
 ---
 
-## 🔧 Available Kernels
-
-<div align="center">
-
-| Kernel | Repository | Status |
-|--------|------------|--------|
-| 🏗️ **GKI** | [GKI_KernelSU_SUSFS](https://github.com/WildKernels/GKI_KernelSU_SUSFS) | ✅ Active |
-| 👑 **Sultan** | [Sultan_KernelSU_SUSFS](https://github.com/WildKernels/Sultan_KernelSU_SUSFS) | ✅ Active |
-| 📱 **OnePlus/Oppo/Realme** | [OnePlus_KernelSU_SUSFS](https://github.com/WildKernels/OnePlus_KernelSU_SUSFS) | ✅ Active |
-| 📱 **Samsung** | [Samsung_KernelSU_SUSFS](https://github.com/WildKernels/Samsung_KernelSU_SUSFS) | ✅ Active |
-</div>
-
----
-
 ## 🔗 Additional Resources
 
 - 🩹 [Kernel Patches](https://github.com/WildKernels/kernel_patches)
@@ -55,20 +41,13 @@ Flashing this kernel will not void your warranty, but there is always a risk of 
 
 ## 📱 Device Compatibility
 
-- Please verify the device compatibility before flashing here: [Compatibility_Info](https://github.com/WildKernels/OnePlus_KernelSU_SUSFS/blob/main/compatibility.md). 
+- Please verify the device compatibility before flashing here: [Compatibility_Info](https://github.com/WildKernels/OnePlus_KernelSU_SUSFS/blob/main/compatibility.md).
 
----
-
-## 📱 OnePlusOSS Repositories Tracking
-
-- 📊 **Live Dashboard**: [OnePlus Repos Tracking & Changes](https://github.com/WildKernels/OnePlus_KernelSU_SUSFS/blob/status-page/README.md)
-- ⏱️ **Update Frequency**: Every 2 hours (Automated)
 ---
 
 ## ✨ Features
 
-- 🔐 **KernelSU / KernelSU-Next**: A root solution for Android GKI devices that works in kernel mode and grants root permission to userspace applications directly in kernel space
-- 🔥 **WildKSU Manager Support**: Support for the Root Manager developed by our team with lots of customisations
+- 🔐 **KernelSU / ReSukiSU**: A root solution for Android GKI devices that works in kernel mode and grants root permission to userspace applications directly in kernel space
 - 🥷 **SUSFS**: An addon root hiding kernel patches and userspace module for KernelSU
 - 🛡️ **BBG**: LSM-based Baseband Guard security to protect critical device partitions. abl/efisp can be added to whitelist for efisp exploit devices.
 - 🛠️ **HMBIRD SCX**: Scheduler extensions for SM8750/MT6991 devices
@@ -83,6 +62,7 @@ Flashing this kernel will not void your warranty, but there is always a risk of 
 - </> **Unicode Bypass Fix**: Prevent path traversal and other detections using non-printable Unicode codepoints [Experimental]
 - 🖥️ **Droidspaces Support**: Support Portable Linux containers to run full Linux environments.
 - 🔃 **NTSync**: Provide high-performance, low-latency synchronization primitives compatible with the Windows NT kernel API
+- 🔃 **LZ4 Update**: Replaces the in-kernel LZ4 implementation with a newer upstream version, ported from Numbersf/Action-Build
 
 ---
 
@@ -96,27 +76,27 @@ You can also find Installation instructions in the release notes.
 
 ---
 
-## 🌟 Special Thanks
+## 🌟 Credits & Upstream Projects
 
-**These amazing people help make this project possible! ❤️**
+**This fork wouldn't exist without these projects. Huge thanks to everyone below! ❤️**
 
 <div align="center">
 
-
-| 🔧 **Project** | 👨‍💻 **Developer** | 🔗 **Link** |
-|:---------------:|:----------------:|:-----------:|
-| **KernelSU** | tiann | [![GitHub](https://img.shields.io/badge/GitHub-tiann-blue?style=flat-square&logo=github)](https://github.com/tiann/KernelSU) |
-| **KernelSU-Next** | rifsxd | [![GitHub](https://img.shields.io/badge/GitHub-rifsxd-blue?style=flat-square&logo=github)](https://github.com/KernelSU-Next/KernelSU-Next) |
-| **Magic-KSU** | 5ec1cff | [![GitHub](https://img.shields.io/badge/GitHub-5ec1cff-blue?style=flat-square&logo=github)](https://github.com/5ec1cff/KernelSU) |
-| **SUSFS** | simonpunk | [![GitLab](https://img.shields.io/badge/GitLab-simonpunk-orange?style=flat-square&logo=gitlab)](https://gitlab.com/simonpunk/susfs4ksu.git) |
-| **SUSFS Module** | sidex15 | [![GitHub](https://img.shields.io/badge/GitHub-sidex15-blue?style=flat-square&logo=github)](https://github.com/sidex15) |
-| **Sultan Kernels** | kerneltoast | [![GitHub](https://img.shields.io/badge/GitHub-kerneltoast-blue?style=flat-square&logo=github)](https://github.com/kerneltoast) |
-| **Baseband Guard** | vc-teahouse | [![GitHub](https://img.shields.io/badge/GitHub-vc--teahouse-blue?style=flat-square&logo=github)](https://github.com/vc-teahouse/Baseband-guard.git) |
-| **Droidspaces** | ravindu644 | [![GitHub](https://img.shields.io/badge/GitHub-ravindu644-blue?style=flat-square&logo=github)](https://github.com/ravindu644/Droidspaces-OSS.git) |
+| 🔧 **Project** | 👨‍💻 **Author** | 🔗 **Link** | 📝 **Used for** |
+|:---------------:|:----------------:|:-----------:|:-----------------|
+| **WildKernels/OnePlus_KernelSU_SUSFS** | WildKernels | [![GitHub](https://img.shields.io/badge/GitHub-WildKernels-blue?style=flat-square&logo=github)](https://github.com/WildKernels/OnePlus_KernelSU_SUSFS) | Upstream base this fork builds on |
+| **ReSukiSU** | ReSukiSU | [![GitHub](https://img.shields.io/badge/GitHub-ReSukiSU-blue?style=flat-square&logo=github)](https://github.com/ReSukiSU/ReSukiSU) | The root manager this fork uses |
+| **huangdihd/OnePlus_ReSukiSU_SUSFS** | huangdihd | [![GitHub](https://img.shields.io/badge/GitHub-huangdihd-blue?style=flat-square&logo=github)](https://github.com/huangdihd/OnePlus_ReSukiSU_SUSFS) | Reference implementation for the KernelSU-Next → ReSukiSU swap |
+| **Numbersf/Action-Build** (ReSukiSU branch) | Numbersf | [![GitHub](https://img.shields.io/badge/GitHub-Numbersf-blue?style=flat-square&logo=github)](https://github.com/Numbersf/Action-Build/tree/ReSukiSU) | LZ4 update & `PatchFakePatches.kts` SUBLEVEL-aware SUSFS compatibility shims |
+| **KernelSU** | tiann | [![GitHub](https://img.shields.io/badge/GitHub-tiann-blue?style=flat-square&logo=github)](https://github.com/tiann/KernelSU) | Original KernelSU implementation |
+| **SUSFS** | simonpunk | [![GitLab](https://img.shields.io/badge/GitLab-simonpunk-orange?style=flat-square&logo=gitlab)](https://gitlab.com/simonpunk/susfs4ksu.git) | Root hiding kernel patches |
+| **SUSFS Module** | sidex15 | [![GitHub](https://img.shields.io/badge/GitHub-sidex15-blue?style=flat-square&logo=github)](https://github.com/sidex15) | SUSFS userspace module |
+| **Baseband Guard** | vc-teahouse | [![GitHub](https://img.shields.io/badge/GitHub-vc--teahouse-blue?style=flat-square&logo=github)](https://github.com/vc-teahouse/Baseband-guard.git) | BBG partition protection |
+| **Droidspaces** | ravindu644 | [![GitHub](https://img.shields.io/badge/GitHub-ravindu644-blue?style=flat-square&logo=github)](https://github.com/ravindu644/Droidspaces-OSS.git) | Portable Linux container support |
 
 </div>
 
-*If you have contributed and are not listed here, please remind me!* 🙏
+*If you contributed something used here and aren't listed, please let me know so I can credit you properly.* 🙏
 
 ---
 
@@ -124,26 +104,4 @@ You can also find Installation instructions in the release notes.
 
 If you encounter any issues or need help, feel free to:
 - 🐛 Open an issue in this repository
-- 💬 Reach out to me directly
-
----
-
-## 📱 Connect With Us
-
-<div align="center">
-  
-[![Telegram](https://img.shields.io/badge/Telegram-fatalcoder524-blue?logo=telegram)](https://t.me/anonymous_yolo)
-[![Telegram Group](https://img.shields.io/badge/Telegram-WildKernels-blue?logo=telegram)](https://t.me/WildKernelsTG)
-
-</div>
-
----
-
-## 💝 Donations
-
-Any and all donations are appreciated!
-
-PayPal: [paypal.me/fatalcoder524](https://paypal.me/fatalcoder524)
-
-DM on Telegram for UPI donations!
 
