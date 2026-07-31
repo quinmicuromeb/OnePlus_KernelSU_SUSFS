@@ -68,13 +68,28 @@ runs:
         
         git fetch --tags --force
         
-        if ! git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
-          echo "Tag '$TAG_NAME' not found. Creating backdated release..."
-          GIT_COMMITTER_DATE="2015-01-01T12:00:00" git tag -a "$TAG_NAME" -m "General Cache Storage"
-          if git push origin "$TAG_NAME" --force; then
-            gh release create "$TAG_NAME" --title "General Cache" --notes "Automated storage for build assets" --repo "$TARGET_REPO" || true
+        if ! gh release view "$TAG_NAME" --repo "$TARGET_REPO" >/dev/null 2>&1; then
+          echo "Release '$TAG_NAME' not found on GitHub. Creating..."
+          
+          if ! git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+            GIT_COMMITTER_DATE="2015-01-01T12:00:00" git tag -a "$TAG_NAME" -m "General Cache Storage"
+            if ! git push origin "$TAG_NAME" --force; then
+              echo "Tag push failed, tag might have been created by a parallel job. Continuing..."
+            fi
           else
-            echo "Push failed, tag might have been created by a parallel job. Continuing..."
+            echo "Tag '$TAG_NAME' already exists (but no Release wraps it yet). Reusing it."
+          fi
+          
+          if gh release create "$TAG_NAME" --title "General Cache" --notes "Automated storage for build assets" --repo "$TARGET_REPO"; then
+            echo "Release created."
+          else
+            echo "Release create failed — likely created by a parallel job just now. Verifying..."
+            if ! gh release view "$TAG_NAME" --repo "$TARGET_REPO" >/dev/null 2>&1; then
+              echo "::error::Release '$TAG_NAME' still does not exist after create attempt. Aborting."
+              echo "::endgroup::"
+              exit 1
+            fi
+            echo "Confirmed: release now exists (created by a parallel job)."
           fi
         else
           echo "Release '$TAG_NAME' already exists. Ready for upload."
@@ -97,12 +112,24 @@ runs:
             else
               tar --posix -h -I "zstd -T0 -${{ inputs.compression_level }}" -cvf "$FILENAME" -C "$DIR_NAME" "$BASE_NAME"
             fi
+            TAR_EXIT=$?
           else
             if [ "${{ inputs.compression_level }}" -eq 0 ]; then
-              tar --posix -h -cvf "$FILENAME" -C "$DIR_NAME" "$BASE_NAME" > /dev/null 2>&1
+              TAR_LOG=$(tar --posix -h -cvf "$FILENAME" -C "$DIR_NAME" "$BASE_NAME" 2>&1)
+              TAR_EXIT=$?
             else
-              tar --posix -h -I "zstd -T0 -${{ inputs.compression_level }}" -cvf "$FILENAME" -C "$DIR_NAME" "$BASE_NAME" > /dev/null 2>&1
+              TAR_LOG=$(tar --posix -h -I "zstd -T0 -${{ inputs.compression_level }}" -cvf "$FILENAME" -C "$DIR_NAME" "$BASE_NAME" 2>&1)
+              TAR_EXIT=$?
             fi
+            if [ "$TAR_EXIT" -ne 0 ]; then
+              echo "$TAR_LOG"
+            fi
+          fi
+          
+          if [ "$TAR_EXIT" -ne 0 ] || [ ! -s "$FILENAME" ]; then
+            echo "::error::Archiving failed (tar exit code: $TAR_EXIT) or produced an empty/missing file: $FILENAME. Aborting cache save — see log above for the real tar/zstd error."
+            echo "::endgroup::"
+            exit 1
           fi
           
           FILE_SIZE=$(stat -c%s "$FILENAME")
@@ -141,9 +168,15 @@ runs:
                   return 0
                 fi
               else
-                if timeout 10m gh release upload "$TAG_NAME" "$file" --clobber --repo "$TARGET_REPO" > /dev/null 2>&1; then
+                UPLOAD_LOG=$(timeout 10m gh release upload "$TAG_NAME" "$file" --clobber --repo "$TARGET_REPO" 2>&1)
+                UPLOAD_EXIT=$?
+                if [ "$UPLOAD_EXIT" -eq 0 ]; then
                   echo "  Successfully uploaded $file"
                   return 0
+                else
+                  echo "  --- gh release upload output (exit $UPLOAD_EXIT) ---"
+                  echo "$UPLOAD_LOG"
+                  echo "  ---------------------------------------------------"
                 fi
               fi
               

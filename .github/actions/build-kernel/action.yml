@@ -710,9 +710,6 @@ runs:
           echo ""
           echo "Pre-build cache statistics:"
           ccache -s | head -n 20
-          
-          echo "Updating atime to achive cache eviction"
-          find ${{ env.CCACHE_DIR }} -type f -exec touch -t $(date -d "1 day ago" +%Y%m%d%H%M) {} +
         else
           echo "⚠️ No existing cache - building from scratch"
           echo "Cache will be populated for future builds"
@@ -2036,10 +2033,6 @@ runs:
         echo "Clear Temporary cache files..."
         ccache -c
         
-        echo "Perform ccache eviction!"
-        # 0.5 days = 12 Hrs. Delete cache unused in 12 hrs. 12 hrs is considered for safety.
-        # Yes. ccache uses mtime as a store of time due to cross compatibility with different OS.
-        find "$CCACHE_DIR" -type f -mtime +0.5 -delete
         # Remove empty layout subdirectories
         find "$CCACHE_DIR" -type d -empty -delete
 
