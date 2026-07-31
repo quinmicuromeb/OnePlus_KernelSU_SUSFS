@@ -23,12 +23,13 @@ on:
           - A16
           - A15
           - A14
+          - Ace2_A16
           - android16-6.12
           - android15-6.6
           - android14-6.1
           - android13-5.15
           - android12-5.10
-        default: A14+15+16
+        default: Ace2_A16
       ksu_options:
         description: 'Enter KernelSU build json'
         required: true
@@ -40,11 +41,17 @@ on:
         type: choice
         options: [O2, O3]
         default: O2
-      lz4_update:
-        description: '🔃 Force-enable LZ4 update for this run (overrides every selected model, replaces in-kernel LZ4 with the latest upstream version). Leave unchecked to use each model config default.'
+      # --- Per-feature overrides (single input to stay under workflow_dispatch's input limit) ---
+      # Format: key=value,key2=value2  (e.g. "bbr3=false,hmbird=true,lto=thin,uname=perf")
+      # Leave empty to use each selected model's own configs/*.json values as-is.
+      # Boolean keys: hmbird, susfs, opt, bbg, bbr, bbr3, ttl, ip_set, rust_build, unicode, ds, ntsync, lz4_update (value: true/false)
+      # lto (value: none/thin/full)
+      # uname (value: any string, max 44 chars — overrides LOCALVERSION)
+      feature_overrides:
+        description: '🔧 Override features for this run, e.g. "bbr3=false,hmbird=true,lto=thin,uname=perf". Empty = use each model config as-is.'
         required: false
-        type: boolean
-        default: false
+        type: string
+        default: 'lz4_update=true'
       clean_build:
         description: 'Clean build (no ccache)'
         type: boolean
@@ -62,7 +69,7 @@ on:
       build_timestamp:
         description: 'Custom kernel build timestamp for uname -a (e.g. "Tue Feb 10 10:01:02 UTC 2026"). Leave empty for current time.'
         type: string
-        default: ''
+        default: 'Sat Aug 16 07:34:19 UTC 2025'
       android12-5_10_susfs_branch_or_commit:
         description: 'Enter SusFS Branch or commit hash for android12-5.10'
         type: string
@@ -159,6 +166,9 @@ jobs:
             A14)
               jq_filter="map(select(.os_version == \"A14\"))"
               ;;
+            Ace2_A16)
+              jq_filter="map(select(.model == \"OP-ACE-2\" and .os_version == \"A16\"))"
+              ;;
             android*-*.*)
               # Extract android version and kernel version
               IFS='-' read -r av kv <<< "$input"
@@ -204,9 +214,55 @@ jobs:
           
           rm ksu_temp.json
           
-          if [ "${{ github.event.inputs.lz4_update }}" = "true" ]; then
-            echo "🔃 LZ4 update forced ON for this run (overriding per-model config)"
-            merged_matrix=$(echo "$merged_matrix" | jq 'map(.lz4_update = true)')
+          # --- Apply per-feature runtime overrides ---
+          # Parses "key=value,key2=value2" from the single feature_overrides input.
+          # Any key not mentioned is left untouched, i.e. that model's own
+          # configs/*.json value stays the default.
+          declare -A FEATURE_OVERRIDES
+          RAW_OVERRIDES="${{ github.event.inputs.feature_overrides }}"
+          if [ -n "$RAW_OVERRIDES" ]; then
+            IFS=',' read -ra PAIRS <<< "$RAW_OVERRIDES"
+            for pair in "${PAIRS[@]}"; do
+              pair="$(echo "$pair" | xargs)"
+              [ -z "$pair" ] && continue
+              key="$(echo "${pair%%=*}" | xargs)"
+              val="$(echo "${pair#*=}" | xargs)"
+              FEATURE_OVERRIDES["$key"]="$val"
+            done
+          fi
+          
+          BOOL_FEATURE_KEYS="hmbird susfs opt bbg bbr bbr3 ttl ip_set rust_build unicode ds ntsync lz4_update"
+          for key in $BOOL_FEATURE_KEYS; do
+            val="${FEATURE_OVERRIDES[$key]:-}"
+            if [ "$val" = "true" ] || [ "$val" = "false" ]; then
+              echo "🔧 Overriding '$key' = $val for this run (ignoring per-model config)"
+              merged_matrix=$(echo "$merged_matrix" | jq --arg k "$key" --argjson v "$val" 'map(.[$k] = $v)')
+            elif [ -n "$val" ]; then
+              echo "::warning::Ignoring invalid override '$key=$val' (expected true/false)"
+            fi
+          done
+          
+          lto_val="${FEATURE_OVERRIDES[lto]:-}"
+          if [ -n "$lto_val" ]; then
+            case "$lto_val" in
+              none|thin|full)
+                echo "🔧 Overriding 'lto' = $lto_val for this run (ignoring per-model config)"
+                merged_matrix=$(echo "$merged_matrix" | jq --arg v "$lto_val" 'map(.lto = $v)')
+                ;;
+              *)
+                echo "::warning::Ignoring invalid override 'lto=$lto_val' (expected none/thin/full)"
+                ;;
+            esac
+          fi
+          
+          uname_val="${FEATURE_OVERRIDES[uname]:-}"
+          if [ -n "$uname_val" ]; then
+            if [ "${#uname_val}" -gt 44 ]; then
+              echo "::warning::Ignoring invalid override 'uname=$uname_val' (max 44 characters, got ${#uname_val})"
+            else
+              echo "🔧 Overriding 'uname' = $uname_val for this run (ignoring per-model config)"
+              merged_matrix=$(echo "$merged_matrix" | jq --arg v "$uname_val" 'map(.uname = $v)')
+            fi
           fi
           
           final_count=$(echo "$merged_matrix" | jq 'length')
