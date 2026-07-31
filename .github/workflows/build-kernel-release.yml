@@ -41,15 +41,16 @@ on:
         options: [O2, O3]
         default: O2
       # --- Per-feature overrides (single input to stay under workflow_dispatch's input limit) ---
-      # Format: key=value,key2=value2  (e.g. "bbr3=false,hmbird=true,lto=thin")
+      # Format: key=value,key2=value2  (e.g. "bbr3=false,hmbird=true,lto=thin,uname=perf")
       # Leave empty to use each selected model's own configs/*.json values as-is.
       # Boolean keys: hmbird, susfs, opt, bbg, bbr, bbr3, ttl, ip_set, rust_build, unicode, ds, ntsync, lz4_update (value: true/false)
       # lto (value: none/thin/full)
+      # uname (value: any string, max 44 chars — overrides LOCALVERSION)
       feature_overrides:
-        description: '🔧 Override features for this run, e.g. "bbr3=false,hmbird=true,lto=thin". Empty = use each model config as-is.'
+        description: '🔧 Override features for this run, e.g. "bbr3=false,hmbird=true,lto=thin,uname=perf". Empty = use each model config as-is.'
         required: false
         type: string
-        default: 'lz4_update=true'
+        default: 'lz4_update=true,uname=9-o-gbf90590695a1'
       clean_build:
         description: 'Clean build (no ccache)'
         type: boolean
@@ -67,7 +68,7 @@ on:
       build_timestamp:
         description: 'Custom kernel build timestamp for uname -a (e.g. "Tue Feb 10 10:01:02 UTC 2026"). Leave empty for current time.'
         type: string
-        default: ''
+        default: 'Sat Aug 16 07:34:19 UTC 2025'
       android12-5_10_susfs_branch_or_commit:
         description: 'Enter SusFS Branch or commit hash for android12-5.10'
         type: string
@@ -248,6 +249,16 @@ jobs:
                 echo "::warning::Ignoring invalid override 'lto=$lto_val' (expected none/thin/full)"
                 ;;
             esac
+          fi
+          
+          uname_val="${FEATURE_OVERRIDES[uname]:-}"
+          if [ -n "$uname_val" ]; then
+            if [ "${#uname_val}" -gt 44 ]; then
+              echo "::warning::Ignoring invalid override 'uname=$uname_val' (max 44 characters, got ${#uname_val})"
+            else
+              echo "🔧 Overriding 'uname' = $uname_val for this run (ignoring per-model config)"
+              merged_matrix=$(echo "$merged_matrix" | jq --arg v "$uname_val" 'map(.uname = $v)')
+            fi
           fi
           
           final_count=$(echo "$merged_matrix" | jq 'length')
