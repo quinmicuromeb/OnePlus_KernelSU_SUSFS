@@ -23,12 +23,13 @@ on:
           - A16
           - A15
           - A14
+          - Ace2_A16
           - android16-6.12
           - android15-6.6
           - android14-6.1
           - android13-5.15
           - android12-5.10
-        default: A14+15+16
+        default: Ace2_A16
       ksu_options:
         description: 'Enter KernelSU build json'
         required: true
@@ -50,7 +51,7 @@ on:
         description: '🔧 Override features for this run, e.g. "bbr3=false,hmbird=true,lto=thin,uname=perf". Empty = use each model config as-is.'
         required: false
         type: string
-        default: 'lz4_update=true,uname=9-o-gbf90590695a1'
+        default: 'lz4_update=true'
       clean_build:
         description: 'Clean build (no ccache)'
         type: boolean
@@ -164,6 +165,9 @@ jobs:
               ;;
             A14)
               jq_filter="map(select(.os_version == \"A14\"))"
+              ;;
+            Ace2_A16)
+              jq_filter="map(select(.model == \"OP-ACE-2\" and .os_version == \"A16\"))"
               ;;
             android*-*.*)
               # Extract android version and kernel version
