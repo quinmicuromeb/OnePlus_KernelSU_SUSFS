@@ -40,94 +40,16 @@ on:
         type: choice
         options: [O2, O3]
         default: O2
-      # --- Per-feature overrides ---
-      # Each defaults to "inherit", meaning: use whatever is already set in that
-      # model's own configs/*.json (i.e. the current config value is the default).
-      # Set to true/false to force that value for every model selected in this run.
-      hmbird:
-        description: '🐦 HMBIRD SCX scheduler'
+      # --- Per-feature overrides (single input to stay under workflow_dispatch's input limit) ---
+      # Format: key=value,key2=value2  (e.g. "bbr3=false,hmbird=true,lto=thin")
+      # Leave empty to use each selected model's own configs/*.json values as-is.
+      # Boolean keys: hmbird, susfs, opt, bbg, bbr, bbr3, ttl, ip_set, rust_build, unicode, ds, ntsync, lz4_update (value: true/false)
+      # lto (value: none/thin/full)
+      feature_overrides:
+        description: '🔧 Override features for this run, e.g. "bbr3=false,hmbird=true,lto=thin". Empty = use each model config as-is.'
         required: false
-        type: choice
-        options: [inherit, "true", "false"]
-        default: inherit
-      susfs:
-        description: '🛡️ SUSFS integration'
-        required: false
-        type: choice
-        options: [inherit, "true", "false"]
-        default: inherit
-      opt:
-        description: '⚙️ Kernel optimisations'
-        required: false
-        type: choice
-        options: [inherit, "true", "false"]
-        default: inherit
-      bbg:
-        description: '📶 BBG'
-        required: false
-        type: choice
-        options: [inherit, "true", "false"]
-        default: inherit
-      bbr:
-        description: '🌊 BBR'
-        required: false
-        type: choice
-        options: [inherit, "true", "false"]
-        default: inherit
-      bbr3:
-        description: '🌊 BBRv3'
-        required: false
-        type: choice
-        options: [inherit, "true", "false"]
-        default: inherit
-      ttl:
-        description: '🔁 TTL'
-        required: false
-        type: choice
-        options: [inherit, "true", "false"]
-        default: inherit
-      ip_set:
-        description: '🌐 IP_SET & IPv6 NAT'
-        required: false
-        type: choice
-        options: [inherit, "true", "false"]
-        default: inherit
-      rust_build:
-        description: '🦀 Rust build support'
-        required: false
-        type: choice
-        options: [inherit, "true", "false"]
-        default: inherit
-      unicode:
-        description: '🔤 Unicode bypass fix'
-        required: false
-        type: choice
-        options: [inherit, "true", "false"]
-        default: inherit
-      ds:
-        description: '📦 Droidspaces'
-        required: false
-        type: choice
-        options: [inherit, "true", "false"]
-        default: inherit
-      ntsync:
-        description: '🔄 NTSync'
-        required: false
-        type: choice
-        options: [inherit, "true", "false"]
-        default: inherit
-      lz4_update:
-        description: '🔃 LZ4 update (replaces in-kernel LZ4 with the latest upstream version)'
-        required: false
-        type: choice
-        options: [inherit, "true", "false"]
-        default: inherit
-      lto:
-        description: '🔗 LTO mode'
-        required: false
-        type: choice
-        options: [inherit, none, thin, full]
-        default: inherit
+        type: string
+        default: 'lz4_update=true'
       clean_build:
         description: 'Clean build (no ccache)'
         type: boolean
@@ -145,7 +67,7 @@ on:
       build_timestamp:
         description: 'Custom kernel build timestamp for uname -a (e.g. "Tue Feb 10 10:01:02 UTC 2026"). Leave empty for current time.'
         type: string
-        default: 'Sat Aug 16 07:34:19 UTC 2025'
+        default: ''
       android12-5_10_susfs_branch_or_commit:
         description: 'Enter SusFS Branch or commit hash for android12-5.10'
         type: string
@@ -288,35 +210,44 @@ jobs:
           rm ksu_temp.json
           
           # --- Apply per-feature runtime overrides ---
-          # "inherit" (the default) means: leave each model's own configs/*.json
-          # value untouched, i.e. the config's current value stays the default.
-          declare -A FEATURE_OVERRIDES=(
-            [hmbird]="${{ github.event.inputs.hmbird }}"
-            [susfs]="${{ github.event.inputs.susfs }}"
-            [opt]="${{ github.event.inputs.opt }}"
-            [bbg]="${{ github.event.inputs.bbg }}"
-            [bbr]="${{ github.event.inputs.bbr }}"
-            [bbr3]="${{ github.event.inputs.bbr3 }}"
-            [ttl]="${{ github.event.inputs.ttl }}"
-            [ip_set]="${{ github.event.inputs.ip_set }}"
-            [rust_build]="${{ github.event.inputs.rust_build }}"
-            [unicode]="${{ github.event.inputs.unicode }}"
-            [ds]="${{ github.event.inputs.ds }}"
-            [ntsync]="${{ github.event.inputs.ntsync }}"
-            [lz4_update]="${{ github.event.inputs.lz4_update }}"
-          )
-          for key in "${!FEATURE_OVERRIDES[@]}"; do
-            val="${FEATURE_OVERRIDES[$key]}"
+          # Parses "key=value,key2=value2" from the single feature_overrides input.
+          # Any key not mentioned is left untouched, i.e. that model's own
+          # configs/*.json value stays the default.
+          declare -A FEATURE_OVERRIDES
+          RAW_OVERRIDES="${{ github.event.inputs.feature_overrides }}"
+          if [ -n "$RAW_OVERRIDES" ]; then
+            IFS=',' read -ra PAIRS <<< "$RAW_OVERRIDES"
+            for pair in "${PAIRS[@]}"; do
+              pair="$(echo "$pair" | xargs)"
+              [ -z "$pair" ] && continue
+              key="$(echo "${pair%%=*}" | xargs)"
+              val="$(echo "${pair#*=}" | xargs)"
+              FEATURE_OVERRIDES["$key"]="$val"
+            done
+          fi
+          
+          BOOL_FEATURE_KEYS="hmbird susfs opt bbg bbr bbr3 ttl ip_set rust_build unicode ds ntsync lz4_update"
+          for key in $BOOL_FEATURE_KEYS; do
+            val="${FEATURE_OVERRIDES[$key]:-}"
             if [ "$val" = "true" ] || [ "$val" = "false" ]; then
               echo "🔧 Overriding '$key' = $val for this run (ignoring per-model config)"
               merged_matrix=$(echo "$merged_matrix" | jq --arg k "$key" --argjson v "$val" 'map(.[$k] = $v)')
+            elif [ -n "$val" ]; then
+              echo "::warning::Ignoring invalid override '$key=$val' (expected true/false)"
             fi
           done
           
-          lto_override="${{ github.event.inputs.lto }}"
-          if [ "$lto_override" != "inherit" ] && [ -n "$lto_override" ]; then
-            echo "🔧 Overriding 'lto' = $lto_override for this run (ignoring per-model config)"
-            merged_matrix=$(echo "$merged_matrix" | jq --arg v "$lto_override" 'map(.lto = $v)')
+          lto_val="${FEATURE_OVERRIDES[lto]:-}"
+          if [ -n "$lto_val" ]; then
+            case "$lto_val" in
+              none|thin|full)
+                echo "🔧 Overriding 'lto' = $lto_val for this run (ignoring per-model config)"
+                merged_matrix=$(echo "$merged_matrix" | jq --arg v "$lto_val" 'map(.lto = $v)')
+                ;;
+              *)
+                echo "::warning::Ignoring invalid override 'lto=$lto_val' (expected none/thin/full)"
+                ;;
+            esac
           fi
           
           final_count=$(echo "$merged_matrix" | jq 'length')
