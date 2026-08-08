@@ -138,6 +138,7 @@ runs:
         lto="$OP_LTO"
         uname="$OP_UNAME"
         unicode="$OP_UNICODE"
+        fuse_bpf="${OP_FUSE_BPF:-false}"
         c_compiler="$OP_C_COMPILER"
         rust_compiler="$OP_RUST_COMPILER"
         zyc_compiler="$OP_ZYC_COMPILER"
@@ -273,6 +274,10 @@ runs:
           errors+=("Input 'unicode' cannot be empty")
         elif [[ "$unicode" != "true" && "$unicode" != "false" ]]; then
           errors+=("Input 'unicode' contains invalid characters. Allowed: 'true' or 'false'. Got: '$unicode'")
+        fi
+        
+        if [[ "$fuse_bpf" != "true" && "$fuse_bpf" != "false" ]]; then
+          errors+=("Input 'fuse_bpf' contains invalid characters. Allowed: 'true' or 'false'. Got: '$fuse_bpf'")
         fi
         
         # OP_C_COMPILER currently has no checks!
@@ -1455,6 +1460,47 @@ runs:
         else
             patch -p1 --forward < "$KERNEL_PATCHES_FOLDER/common/unicode_bypass_fix_6.1+.patch"
         fi
+
+    - name: Apply FUSE-BPF Backport
+      shell: bash
+      if: ${{ env.OP_FUSE_BPF == 'true' }}
+      run: |
+        set -euo pipefail
+        echo "::group::Apply FUSE-BPF Backport"
+        
+        if [ "$KMI" != "android12-5.10" ]; then
+          echo "::warning title=FUSE-BPF Skipped::fuse_bpf is only wired up for android12-5.10 (current KMI: ${KMI}). Skipping — no changes made."
+          echo "::endgroup::"
+          exit 0
+        fi
+        
+        cd "$COMMON_KERNEL_FOLDER"
+        
+        # This is Google's own squashed FUSE-BPF commit from kernel/common,
+        # tested by Google against common-android13-5.10. It has NOT been
+        # verified against android12-5.10 — cherry-pick is used (rather than a
+        # static .patch file) specifically so conflicts are reported clearly
+        # per-file instead of failing silently on a stale context match.
+        FUSE_BPF_SHA="f5f4199c102aa676998b42abff60d071385c1c0c"
+        
+        echo "Fetching FUSE-BPF commit $FUSE_BPF_SHA from android.googlesource.com/kernel/common..."
+        if ! git fetch --depth=2 https://android.googlesource.com/kernel/common "$FUSE_BPF_SHA"; then
+          echo "::error::Failed to fetch FUSE-BPF commit from Google's kernel/common. Aborting."
+          echo "::endgroup::"
+          exit 1
+        fi
+        
+        echo "Cherry-picking (no commit, working-tree only)..."
+        if ! git -c user.email="ci@localhost" -c user.name="CI" cherry-pick --no-commit FETCH_HEAD; then
+          echo "::error::FUSE-BPF cherry-pick hit conflicts on the following files — resolve manually or leave fuse_bpf disabled for this KMI:"
+          git diff --name-only --diff-filter=U || true
+          git cherry-pick --abort || true
+          echo "::endgroup::"
+          exit 1
+        fi
+        
+        echo "✅ FUSE-BPF cherry-picked cleanly (CONFIG_FUSE_BPF=y is included in the commit's own defconfig change)"
+        echo "::endgroup::"
 
     - name: Add Tmpfs Support
       shell: bash
