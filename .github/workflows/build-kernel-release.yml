@@ -29,7 +29,7 @@ on:
           - android14-6.1
           - android13-5.15
           - android12-5.10
-        default: Ace2_A16
+        default: A14+15+16
       ksu_options:
         description: 'Enter KernelSU build json'
         required: true
@@ -44,14 +44,15 @@ on:
       # --- Per-feature overrides (single input to stay under workflow_dispatch's input limit) ---
       # Format: key=value,key2=value2  (e.g. "bbr3=false,hmbird=true,lto=thin,uname=perf")
       # Leave empty to use each selected model's own configs/*.json values as-is.
-      # Boolean keys: hmbird, susfs, opt, bbg, bbr, bbr3, ttl, ip_set, rust_build, unicode, ds, ntsync, lz4_update (value: true/false)
+      # Boolean keys: hmbird, susfs, opt, bbg, bbr, bbr3, ttl, ip_set, rust_build, unicode, ds, ntsync, lz4_update, fuse_bpf (value: true/false)
+      # fuse_bpf only takes effect on android12-5.10 builds; ignored otherwise.
       # lto (value: none/thin/full)
       # uname (value: any string, max 44 chars — overrides LOCALVERSION)
       feature_overrides:
         description: '🔧 Override features for this run, e.g. "bbr3=false,hmbird=true,lto=thin,uname=perf". Empty = use each model config as-is.'
         required: false
         type: string
-        default: 'lz4_update=true'
+        default: ''
       clean_build:
         description: 'Clean build (no ccache)'
         type: boolean
@@ -69,7 +70,7 @@ on:
       build_timestamp:
         description: 'Custom kernel build timestamp for uname -a (e.g. "Tue Feb 10 10:01:02 UTC 2026"). Leave empty for current time.'
         type: string
-        default: 'Sat Aug 16 07:34:19 UTC 2025'
+        default: ''
       android12-5_10_susfs_branch_or_commit:
         description: 'Enter SusFS Branch or commit hash for android12-5.10'
         type: string
@@ -152,29 +153,29 @@ jobs:
             A14+15+16)
               ;;
             A15+16)
-              jq_filter="map(select(.os_version == \"A15\" or .os_version == \"A16\"))"
+              jq_filter="map(select(.os_version == \"OOS15\" or .os_version == \"OOS16\"))"
               ;;
             A14+15)
-              jq_filter="map(select(.os_version == \"A14\" or .os_version == \"A15\"))"
+              jq_filter="map(select(.os_version == \"OOS14\" or .os_version == \"OOS15\"))"
               ;;
             A16)
-              jq_filter="map(select(.os_version == \"A16\"))"
+              jq_filter="map(select(.os_version == \"OOS16\"))"
               ;;
             A15)
-              jq_filter="map(select(.os_version == \"A15\"))"
+              jq_filter="map(select(.os_version == \"OOS15\"))"
               ;;
             A14)
-              jq_filter="map(select(.os_version == \"A14\"))"
+              jq_filter="map(select(.os_version == \"OOS14\"))"
               ;;
             Ace2_A16)
-              jq_filter="map(select(.model == \"OP-ACE-2\" and .os_version == \"A16\"))"
+              jq_filter="map(select(.model == \"OP-ACE-2\" and .os_version == \"OOS16\"))"
               ;;
             android*-*.*)
               # Extract android version and kernel version
               IFS='-' read -r av kv <<< "$input"
               
               # Build android*-* only for A15 and A16
-              jq_filter="map(select(.os_version == \"A15\" or .os_version == \"A16\")) | map(select(.android_version == \"$av\" and .kernel_version == \"$kv\"))"
+              jq_filter="map(select(.os_version == \"OOS15\" or .os_version == \"OOS16\")) | map(select(.android_version == \"$av\" and .kernel_version == \"$kv\"))"
               
               echo "ℹ️  Android-Kernel filter applied: $av-$kv"
               echo "   Restricted to: A15 and A16 only"
@@ -231,7 +232,7 @@ jobs:
             done
           fi
           
-          BOOL_FEATURE_KEYS="hmbird susfs opt bbg bbr bbr3 ttl ip_set rust_build unicode ds ntsync lz4_update"
+          BOOL_FEATURE_KEYS="hmbird susfs opt bbg bbr bbr3 ttl ip_set rust_build unicode ds ntsync lz4_update fuse_bpf"
           for key in $BOOL_FEATURE_KEYS; do
             val="${FEATURE_OVERRIDES[$key]:-}"
             if [ "$val" = "true" ] || [ "$val" = "false" ]; then
